@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Countdown Experiment</title>
+  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/jspsych.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-html-keyboard-response.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/css/jspsych.css" rel="stylesheet" />
+  <style>
+    video {
+      width: 800px;
+      max-width: 90%;
+      margin-bottom: 20px;
+      display: block;
+    }
+    .countdown {
+      font-size: 64px;
+      text-align: center;
+      margin-top: 30px;
+    }
+    .end-text {
+      font-size: 32px;
+      text-align: center;
+      margin-top: 30px;
+    }
+    .final-text {
+      font-size: 48px;
+      text-align: center;
+      margin-top: 30px;
+    }
+    button {
+      font-size: 24px;
+      padding: 10px 25px;
+    }
+  </style>
+</head>
+<body></body>
+
+<script>
+const timeline = [];
+
+// START button
+timeline.push({
+  type: 'html-keyboard-response',
+  stimulus: `
+    <div style="text-align:center;">
+      <button onclick="jsPsych.finishTrial()" style="font-size: 24px; padding: 10px 25px;">START</button>
+    </div>
+  `,
+  choices: jsPsych.NO_KEYS
+});
+
+// Test video
+timeline.push({
+  type: 'html-keyboard-response',
+  stimulus: `
+    <div style="text-align:center;">
+      <video id="testVideo" autoplay muted playsinline>
+        <source src="test_video.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
+  `,
+  choices: jsPsych.NO_KEYS,
+  trial_duration: null,
+  on_load: function () {
+    document.getElementById('testVideo').addEventListener('ended', () => jsPsych.finishTrial());
+  }
+});
+
+// 15-second countdown
+for (let i = 15; i >= 0; i--) {
+  timeline.push({
+    type: 'html-keyboard-response',
+    stimulus: `<div class="countdown">${i}</div>`,
+    choices: jsPsych.NO_KEYS,
+    trial_duration: 1000
+  });
+}
+
+// After 15s countdown – show KONIEC CZASU (smaller, no button)
+timeline.push({
+  type: 'html-keyboard-response',
+  stimulus: `<div class="end-text">KONIEC CZASU</div>`,
+  choices: jsPsych.NO_KEYS,
+  trial_duration: 2000
+});
+
+// Function to add exp video + 60s timer + beep + end screen
+function addExpBlock(videoFile, isFinal = false) {
+  timeline.push({
+    type: 'html-keyboard-response',
+    stimulus: `
+      <div style="text-align:center;">
+        <video id="expVideo" autoplay muted playsinline>
+          <source src="${videoFile}" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    `,
+    choices: jsPsych.NO_KEYS,
+    trial_duration: null,
+    on_load: function () {
+      document.getElementById('expVideo').addEventListener('ended', () => jsPsych.finishTrial());
+    }
+  });
+
+  // Start beep + 60s countdown
+  timeline.push({
+    type: 'html-keyboard-response',
+    stimulus: `
+      <audio autoplay>
+        <source src="beep.mp3" type="audio/mpeg">
+      </audio>
+      <div class="countdown">60</div>
+    `,
+    choices: jsPsych.NO_KEYS,
+    trial_duration: 1000
+  });
+
+  for (let i = 59; i >= 0; i--) {
+    timeline.push({
+      type: 'html-keyboard-response',
+      stimulus: `<div class="countdown">${i}</div>`,
+      choices: jsPsych.NO_KEYS,
+      trial_duration: 1000
+    });
+  }
+
+  // End screen logic
+  if (!isFinal) {
+    // Intermediate blocks: double beep + KONIEC CZASU + DALEJ
+    timeline.push({
+      type: 'html-keyboard-response',
+      stimulus: `
+        <audio autoplay>
+          <source src="double_beep.mp3" type="audio/mpeg">
+        </audio>
+        <div class="end-text">KONIEC CZASU</div>
+        <div style="text-align: center; margin-top: 20px;">
+          <button onclick="jsPsych.finishTrial()" style="font-size: 24px; padding: 10px 25px;">DALEJ</button>
+        </div>
+      `,
+      choices: jsPsych.NO_KEYS
+    });
+  } else {
+    // Final block: show KONIEC only, no button
+    timeline.push({
+      type: 'html-keyboard-response',
+      stimulus: `<div class="final-text">KONIEC</div>`,
+      choices: jsPsych.NO_KEYS,
+      trial_duration: 3000
+    });
+  }
+}
+
+// Start exp video + DALEJ button
+timeline.push({
+  type: 'html-keyboard-response',
+  stimulus: `
+    <div style="text-align:center;">
+      <video id="startExpVideo" width="800" autoplay muted playsinline controls>
+        <source src="start_exp_video.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <br />
+      <button onclick="jsPsych.finishTrial()" style="font-size: 24px; padding: 10px 25px;">START</button>
+    </div>
+  `,
+  choices: jsPsych.NO_KEYS
+});
+
+// Experimental videos
+addExpBlock('exp_video1.mp4');
+addExpBlock('exp_video2.mp4');
+addExpBlock('exp_video3.mp4', true); // Final block – ends with KONIEC only
+
+// Start experiment
+jsPsych.init({ timeline });
+</script>
+</html>
+
